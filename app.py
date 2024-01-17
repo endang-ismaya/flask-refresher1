@@ -1,53 +1,25 @@
 import uuid
 from flask import Flask, request
+from flask_smorest import Api
+
+# apps
 from db import shops, products
+from blueprints.shop import blueprint as ShopBP
 
 app = Flask(__name__)
 
 SHOP_ATTR = ["name", "address"]
 PRODUCT_ATTR = ["shop_id", "name", "price"]
 
-
-@app.route("/shops")
-def get_shops():
-    return {"shops": list(shops.values())}
-
-
-@app.route("/shops/<shop_id>", methods=["get"])
-def get_shop(shop_id):
-    try:
-        return shops[shop_id]
-
-    except KeyError:
-        return {"message": "Shop not found"}, 404
-
-
-@app.route("/shops", methods=["post"])
-def create_shop():
-    shop_data = request.json
-
-    # check if keys in shop data is available
-    if not all(key in shop_data for key in SHOP_ATTR):
-        return (
-            {"message": f"ONLY {','.join(SHOP_ATTR)} field(s) are required"},
-            400,
-        )
-
-    shop_id = uuid.uuid4().hex
-    shop = {**shop_data, "id": shop_id, "products": []}
-
-    shops[shop_id] = shop
-
-    return shop, 201
-
-
-@app.route("/shops/<shop_id>", methods=["delete"])
-def delete_shop(shop_id):
-    try:
-        del shops[shop_id]
-        return {"message", "Shop Deleted"}, 200
-    except KeyError:
-        return {"message": "Shop not found"}, 404
+app.config["PROPAGATE_EXCEPTIONS"] = True
+app.config["API_TITLE"] = "Shops REST API"
+app.config["API_VERSION"] = "v1"
+app.config["OPENAPI_VERSION"] = "3.0.3"
+app.config["OPENAPI_URL_PREFIX"] = "/"
+app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
+app.config[
+    "OPENAPI_SWAGGER_UI_URL"
+] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
 
 
 @app.route("/products", methods=["post"])
@@ -124,6 +96,9 @@ def update_product(product_id):
     except KeyError:
         return {"message": "Product not found"}, 404
 
+
+api = Api(app=app)
+api.register_blueprint(ShopBP)
 
 if __name__ == "__main__":
     app.run()
