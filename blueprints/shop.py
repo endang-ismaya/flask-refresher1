@@ -7,7 +7,6 @@ from db import shops
 blueprint = Blueprint("shops", __name__, description="Operations on Shops")
 
 SHOP_ATTR = ["name", "address"]
-PRODUCT_ATTR = ["shop_id", "name", "price"]
 
 
 @blueprint.route("/shops/<shop_id>")
