@@ -1,46 +1,23 @@
 import uuid
 from flask.views import MethodView
-from flask import request
 from flask_smorest import Blueprint, abort
 from db import shops
+from schemas import ShopSchema
 
 blueprint = Blueprint("shops", __name__, description="Operations on Shops")
-
-SHOP_ATTR = ["name", "address"]
-
-
-@blueprint.route("/shops/<shop_id>")
-class Shop(MethodView):
-    def get(self, shop_id):
-        try:
-            return shops[shop_id]
-
-        except KeyError:
-            abort(404, message="Aborted, Shop not found!")
-
-    def delete(self, shop_id):
-        try:
-            del shops[shop_id]
-            return {"message", "Shop Deleted"}, 200
-        except KeyError:
-            abort(404, message="Aborted, Shop not found!")
 
 
 @blueprint.route("/shops")
 class ShopList(MethodView):
+    @blueprint.response(200, ShopSchema(many=True))
     def get(self):
-        return {"shops": list(shops.values())}
+        """Returns the list of shops"""
+        return list(shops.values())
 
-    def post(self):
-        shop_data = request.json
-
-        # check if keys in shop data is available
-        if not all(key in shop_data for key in SHOP_ATTR):
-            abort(
-                400,
-                message=f"ONLY {','.join(SHOP_ATTR)} field(s) are required!",
-            )
-
+    @blueprint.arguments(ShopSchema)
+    @blueprint.response(201, ShopSchema)
+    def post(self, shop_data):
+        """Creating a new Shop"""
         if any(
             shop_item
             for shop_item in shops.values()
@@ -52,8 +29,28 @@ class ShopList(MethodView):
             )
 
         shop_id = uuid.uuid4().hex
-        shop = {**shop_data, "id": shop_id, "products": []}
+        shop = {**shop_data, "id_": shop_id, "products": []}
 
         shops[shop_id] = shop
 
-        return shop, 201
+        return shop
+
+
+@blueprint.route("/shops/<shop_id>")
+class Shop(MethodView):
+    @blueprint.response(200, ShopSchema)
+    def get(self, shop_id):
+        """Returns a shop by giving it's id"""
+        try:
+            return shops[shop_id]
+
+        except KeyError:
+            abort(404, message="Aborted, Shop not found!")
+
+    def delete(self, shop_id):
+        """Delete a Shop"""
+        try:
+            del shops[shop_id]
+            return {"message": "Shop Deleted"}, 200
+        except KeyError:
+            abort(404, message="Aborted, Shop not found!")
